@@ -1,9 +1,13 @@
 package com.ice.learning.review_pro.config;
 
 import com.ice.learning.review_pro.interceptors.LoginInterceptors;
+import com.ice.learning.review_pro.interceptors.RefreshTokenInterceptor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import javax.annotation.Resource;
 
 /**
  * @Title: MVCConfig
@@ -15,6 +19,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class MVCConfig implements WebMvcConfigurer {
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new LoginInterceptors())
@@ -24,6 +31,7 @@ public class MVCConfig implements WebMvcConfigurer {
                         "/shop/**",
                         "/shop-type/**",
                         "/voucher/**",
-                        "/upload/**");
+                        "/upload/**").order(1);
+        registry.addInterceptor(new RefreshTokenInterceptor(stringRedisTemplate)).order(0);
     }
 }
