@@ -4,7 +4,6 @@ package com.ice.learning.review_pro.controller;
 import com.ice.learning.review_pro.DTO.LoginFormDTO;
 import com.ice.learning.review_pro.DTO.Result;
 import com.ice.learning.review_pro.DTO.UserDTO;
-import com.ice.learning.review_pro.entity.User;
 import com.ice.learning.review_pro.entity.UserInfo;
 import com.ice.learning.review_pro.service.IUserInfoService;
 import com.ice.learning.review_pro.service.IUserService;
