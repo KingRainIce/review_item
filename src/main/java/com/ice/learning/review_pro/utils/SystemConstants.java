@@ -7,4 +7,5 @@ public class SystemConstants {
     public static final int MAX_PAGE_SIZE = 10;
     public static final String PHONE_CODE_PREFIX = "login:code:";
     public static final String LOGIN_USER_PREFIX = "login:token:";
+    public static final String SHOP_TYPE_LIST = "shop:type:list";
 }
