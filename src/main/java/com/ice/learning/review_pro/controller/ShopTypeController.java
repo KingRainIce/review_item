@@ -1,8 +1,8 @@
 package com.ice.learning.review_pro.controller;
 
 
-import cn.hutool.core.convert.Convert;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.ice.learning.review_pro.DTO.Result;
 import com.ice.learning.review_pro.entity.ShopType;
 import com.ice.learning.review_pro.service.IShopTypeService;
@@ -31,7 +31,7 @@ public class ShopTypeController {
         String cacheShop = stringRedisTemplate.opsForValue().get(key);
         if (StrUtil.isNotEmpty(cacheShop)) {
             //2: 有直接返回;
-            List<ShopType> shopTypes = Convert.toList(ShopType.class, cacheShop);
+            List<ShopType> shopTypes = JSONUtil.toList(JSONUtil.parseArray(cacheShop), ShopType.class);
             return Result.ok(shopTypes);
         }
         //3：没有、去数据库中查询
@@ -42,7 +42,7 @@ public class ShopTypeController {
             return Result.fail("没有商品类别");
         }
         //5：有,将店铺数据写入redis中
-        stringRedisTemplate.opsForValue().set(key, Convert.toStr(typeList));
+        stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(typeList));
         //6：返回店铺列表数据
         return Result.ok(typeList);
     }
