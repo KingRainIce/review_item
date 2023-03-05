@@ -8,8 +8,10 @@ import com.ice.learning.review_pro.mapper.VoucherOrderMapper;
 import com.ice.learning.review_pro.service.ISeckillVoucherService;
 import com.ice.learning.review_pro.service.IVoucherOrderService;
 import com.ice.learning.review_pro.utils.RedisIdWorker;
+import com.ice.learning.review_pro.utils.SimpleRedisLock;
 import com.ice.learning.review_pro.utils.UserHolder;
 import org.springframework.aop.framework.AopContext;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     @Resource
     private RedisIdWorker redisIdWorker;
+
+    @Resource
+    private StringRedisTemplate template;
 
     @Override
     public Result seckillVoucher(Long voucherId) {
@@ -40,12 +45,20 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return Result.fail("库存不足");
         }
 
-
-        // 为避免每次toString得到新的字符串对象，需要采用intern方法将其添加字符串池
+        // 创建锁对象
         Long userId = UserHolder.getUser().getId();
-        synchronized (userId.toString().intern()) {
+        SimpleRedisLock simpleRedisLock = new SimpleRedisLock("order:" + userId, template);
+        //获取锁
+        boolean isLock = simpleRedisLock.tryLock(1200);
+        if (!isLock){
+            return Result.fail("Gun");
+        }
+
+        try {
             IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
             return proxy.createVoucherOrder(voucherId);
+        }finally {
+            simpleRedisLock.unLock();
         }
     }
 
