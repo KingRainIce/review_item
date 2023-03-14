@@ -8,8 +8,9 @@ import com.ice.learning.review_pro.mapper.VoucherOrderMapper;
 import com.ice.learning.review_pro.service.ISeckillVoucherService;
 import com.ice.learning.review_pro.service.IVoucherOrderService;
 import com.ice.learning.review_pro.utils.RedisIdWorker;
-import com.ice.learning.review_pro.utils.SimpleRedisLock;
 import com.ice.learning.review_pro.utils.UserHolder;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     @Resource
     private StringRedisTemplate template;
 
+    @Resource
+    private RedissonClient redissonClient;
+
     @Override
     public Result seckillVoucher(Long voucherId) {
         SeckillVoucher voucher = seckillVoucherService.getById(voucherId);
@@ -47,9 +51,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
         // 创建锁对象
         Long userId = UserHolder.getUser().getId();
-        SimpleRedisLock simpleRedisLock = new SimpleRedisLock("order:" + userId, template);
+        RLock lock = redissonClient.getLock("lock:order" + userId);
         //获取锁
-        boolean isLock = simpleRedisLock.tryLock(1200);
+        boolean isLock = lock.tryLock();
         if (!isLock){
             return Result.fail("Gun");
         }
@@ -58,7 +62,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
             return proxy.createVoucherOrder(voucherId);
         }finally {
-            simpleRedisLock.unLock();
+            lock.unlock();
         }
     }
 
