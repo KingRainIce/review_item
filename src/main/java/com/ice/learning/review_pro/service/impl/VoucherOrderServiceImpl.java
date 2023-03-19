@@ -89,7 +89,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                     //5.确认消息
                     template.opsForStream().acknowledge(queueName, "g1", record.getId());
                 } catch (Exception e) {
-                    log.error("处理订单异常", e);
+//                    log.error("处理订单异常", e);
                     handlePendingList();
                 }
             }
@@ -99,11 +99,12 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             while(true){
                 try {
                     // 1.获取pending-list中的订单信息
-                    List<MapRecord<String, Object, Object>> list = template.opsForStream().read(
-                            Consumer.from("g1", "c1"),
-                            StreamReadOptions.empty().count(1).block(Duration.ofSeconds(2)),
-                            StreamOffset.create(queueName, ReadOffset.from("0"))
-                    );
+//                    List<MapRecord<String, Object, Object>> list = template.opsForStream().read(
+//                            Consumer.from("g1", "c1"),
+//                            StreamReadOptions.empty().count(1).block(Duration.ofSeconds(2)),
+//                            StreamOffset.create(queueName, ReadOffset.from("0"))
+//                    );
+                    List<MapRecord<String, Object, Object>> list = null;
                     // 2.判断消息是否获取成功
                     if (Objects.isNull(list) || list.isEmpty()) {
                         break;

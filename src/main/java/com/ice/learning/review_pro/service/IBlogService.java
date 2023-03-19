@@ -1,5 +1,6 @@
 package com.ice.learning.review_pro.service;
 
+import com.ice.learning.review_pro.DTO.Result;
 import com.ice.learning.review_pro.entity.Blog;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -13,4 +14,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IBlogService extends IService<Blog> {
 
+    Result queryHotBlog(Integer current);
+
+    Result queryBlogById(Long id);
 }
