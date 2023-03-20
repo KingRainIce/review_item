@@ -1,5 +1,6 @@
 package com.ice.learning.review_pro.service;
 
+import com.ice.learning.review_pro.DTO.Result;
 import com.ice.learning.review_pro.entity.Follow;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -13,4 +14,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IFollowService extends IService<Follow> {
 
+    Result follow(Long followUserId, Boolean isFollow);
+
+    Result isFollow(Long followUserId);
 }
