@@ -1,9 +1,11 @@
 package com.ice.learning.review_pro.controller;
 
 
+import cn.hutool.core.bean.BeanUtil;
 import com.ice.learning.review_pro.DTO.LoginFormDTO;
 import com.ice.learning.review_pro.DTO.Result;
 import com.ice.learning.review_pro.DTO.UserDTO;
+import com.ice.learning.review_pro.entity.User;
 import com.ice.learning.review_pro.entity.UserInfo;
 import com.ice.learning.review_pro.service.IUserInfoService;
 import com.ice.learning.review_pro.service.IUserService;
@@ -74,4 +76,17 @@ public class UserController {
         // 返回
         return Result.ok(info);
     }
+
+    @GetMapping("/{id}")
+    public Result queryUserById(@PathVariable("id") Long userId){
+        // 查询用户
+        User user = userService.getById(userId);
+        if (user == null) {
+            return Result.fail("用户不存在");
+        }
+        UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
+        // 返回
+        return Result.ok(userDTO);
+    }
+
 }
