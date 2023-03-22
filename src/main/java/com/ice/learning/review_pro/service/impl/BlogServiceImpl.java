@@ -6,23 +6,29 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ice.learning.review_pro.DTO.Result;
+import com.ice.learning.review_pro.DTO.ScrollResult;
 import com.ice.learning.review_pro.DTO.UserDTO;
 import com.ice.learning.review_pro.entity.Blog;
+import com.ice.learning.review_pro.entity.Follow;
 import com.ice.learning.review_pro.entity.User;
 import com.ice.learning.review_pro.mapper.BlogMapper;
 import com.ice.learning.review_pro.service.IBlogService;
+import com.ice.learning.review_pro.service.IFollowService;
 import com.ice.learning.review_pro.utils.SystemConstants;
 import com.ice.learning.review_pro.utils.UserHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.ice.learning.review_pro.utils.RedisConstants.BLOG_LIKED_KEY;
+import static com.ice.learning.review_pro.utils.RedisConstants.FEED_KEY;
 
 
 @Service
@@ -33,6 +39,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
     @Resource
     private StringRedisTemplate template;
+
+    @Resource
+    private IFollowService followService;
 
     @Override
     public Result queryHotBlog(Integer current) {
@@ -114,6 +123,77 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
                 .collect(Collectors.toList());
         //返回
         return Result.ok(userDTOS);
+    }
+
+    @Override
+    public Result saveBlog(Blog blog) {
+        // Get the signed-in user
+        UserDTO user = UserHolder.getUser();
+        blog.setUserId(user.getId());
+        //Save shop exploration notes
+        boolean isSuccess = save(blog);
+        if (!isSuccess){
+            return Result.fail("新增笔记失败");
+        }
+        // Query all fans of the note author
+        List<Follow> list = followService.lambdaQuery().eq(Follow::getFollowUserId, user.getId()).list();
+        // Push note ID to all followers
+        for (Follow follow : list) {
+            // Get a fan ID
+            Long userId = follow.getUserId();
+            // push
+            String key = "feed:" + userId;
+            template.opsForZSet().add(key,blog.getId().toString(),System.currentTimeMillis());
+        }
+        return Result.ok(blog.getId());
+    }
+
+    @Override
+    public Result queryBlogOfFollow(Long max, Long offset) {
+        // Get the current user
+        Long userId = UserHolder.getUser().getId();
+        // Check user inbox
+        String key = FEED_KEY + userId;
+        Set<ZSetOperations.TypedTuple<String>> typedTuples = template.opsForZSet()
+                .reverseRangeByScoreWithScores(key, 0, max, offset, 2);
+        // Non-null judgment
+        if (typedTuples == null || typedTuples.isEmpty()){
+            return Result.ok();
+        }
+        // Parse the data
+        ArrayList<Long> ids = new ArrayList<>(typedTuples.size());
+        long minTime = 0;
+        int os = 1;
+        for (ZSetOperations.TypedTuple<String> tuple : typedTuples) {
+            // Get the Id
+            ids.add(Long.valueOf(tuple.getValue()));
+            // Get score (timestamp)
+            long time = tuple.getScore().longValue();
+            if (time == minTime){
+                os++;
+            }else {
+                minTime = time;
+                os = 1;
+            }
+        }
+        // Query the blog based on id
+        String idStr = StrUtil.join(",", ids);
+        List<Blog> blogs = query().in("id", ids).last("order by field(id," + idStr + ")").list();
+
+        for (Blog blog : blogs) {
+            // Query user information
+            queryBlogUser(blog);
+            // Determine whether the current user has liked the note
+            isBlogLiked(blog);
+        }
+
+        // Encapsulate and return
+        ScrollResult r = new ScrollResult();
+        r.setList(blogs);
+        r.setOffset(os);
+        r.setMinTime(minTime);
+
+        return Result.ok(r);
     }
 
     private void queryBlogUser(Blog blog) {
