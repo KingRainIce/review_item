@@ -13,13 +13,18 @@ import com.ice.learning.review_pro.mapper.UserMapper;
 import com.ice.learning.review_pro.service.IUserService;
 import com.ice.learning.review_pro.utils.RegexUtils;
 import com.ice.learning.review_pro.utils.SystemConstants;
+import com.ice.learning.review_pro.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -81,6 +86,57 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         // 7.4 设置过期时间
         stringRedisTemplate.expire(tokenKey, 30, TimeUnit.MINUTES);
         return Result.ok(token);
+    }
+
+    @Override
+    public Result sign() {
+        // Gets the currently logged-on user
+        Long userId = UserHolder.getUser().getId();
+        // Get the date
+        LocalDateTime now = LocalDateTime.now();
+        // Splicing key
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        String key = "sign:" + userId + keySuffix;
+        // Get today is the day of the month
+        int day = now.getDayOfMonth();
+        stringRedisTemplate.opsForValue().setBit(key, day - 1, true);
+        return Result.ok();
+    }
+
+    @Override
+    public Result signCount() {
+        Long userId = UserHolder.getUser().getId();
+        // Get the date
+        LocalDateTime now = LocalDateTime.now();
+        // Splicing key
+        String keySuffix = now.format(DateTimeFormatter.ofPattern(":yyyyMM"));
+        String key = "sign:" + userId + keySuffix;
+        // Get today is the day of the month
+        int day = now.getDayOfMonth();
+        // Get all check-ins up to date this month
+        List<Long> result = stringRedisTemplate.opsForValue().bitField(
+                key,
+                BitFieldSubCommands.create()
+                        .get(BitFieldSubCommands.BitFieldType.unsigned(day)).valueAt(0)
+        );
+        if (result == null || result.isEmpty()) {
+            return Result.ok(0);
+        }
+        Long num = result.get(0);
+        if (num == null || num == 0) {
+            return Result.ok(0);
+        }
+        // Loop traversal
+        int count = 0;
+        while (true){
+            if ((num & 1) == 0){
+                break;
+            }else {
+                count++;
+            }
+            num = num >>> 1;
+        }
+        return Result.ok(count);
     }
 
     private User createUserWithPhone(String phone) {
