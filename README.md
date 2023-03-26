@@ -6,9 +6,9 @@ Redis笔记:实战篇
 
 项目整体架构如下：
 
-[![](https://cdn.jsdelivr.net/gh/KingRainIce/typora-pic@main/202302251101592.png)
+![](https://cdn.jsdelivr.net/gh/KingRainIce/typora-pic@main/202302251101592.png)
 
-](https://lty-image-bed.oss-cn-shenzhen.aliyuncs.com/blog/image-20221025174859439.png "image-20221025174859439")
+
 
 通过Nginx将前端请求转发到后端服务器中，Redis与MySQL作为数据库。
 
@@ -37,9 +37,9 @@ Redis笔记:实战篇
 
    之后启动SpringBoot项目，并访问 `http://localhost:8081/shop-type/list`，显示出数据则说明配置成功！
 
-   [![](https://lty-image-bed.oss-cn-shenzhen.aliyuncs.com/blog/image-20221025172132464.png)
+   ![](https://lty-image-bed.oss-cn-shenzhen.aliyuncs.com/blog/image-20221025172132464.png)
    
-   ](https://lty-image-bed.oss-cn-shenzhen.aliyuncs.com/blog/image-20221025172132464.png)
+   
 
 3. 导入前端项目：配置nginx
 
